@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+*.log
+*.rdb
+*.pt
+Samples/
+.env
+
+
+# Rust
+rust_feed_engine/target/
+**/*.rs.bk
+
+# Python/General
+venv/
+.DS_Store
+
+qdrant
+qdrant_storage/
+storage/

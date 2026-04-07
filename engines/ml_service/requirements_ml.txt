@@ -1,0 +1,12 @@
+torch
+torchvision
+torchaudio
+ultralytics
+openai-whisper
+transformers
+bitsandbytes
+accelerate
+opencv-python-headless
+sentence-transformers
+pillow
+moviepy

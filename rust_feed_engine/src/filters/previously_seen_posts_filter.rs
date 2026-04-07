@@ -1,0 +1,32 @@
+use crate::pipeline::{Filter, FilterResult};
+use crate::models::{PostCandidate, ScoredPostsQuery};
+use crate::util::{bloom_filter::BloomFilter, candidates_util::get_related_post_ids};
+use async_trait::async_trait;
+
+pub struct PreviouslySeenPostsFilter;
+
+#[async_trait]
+impl Filter for PreviouslySeenPostsFilter {
+    async fn filter(
+        &self,
+        query: &ScoredPostsQuery,
+        candidates: Vec<PostCandidate>,
+    ) -> Result<FilterResult<PostCandidate>, String> {
+        let bloom_filters = query
+            .bloom_filter_entries
+            .iter()
+            .map(BloomFilter::from_entry)
+            .collect::<Vec<_>>();
+
+        let (removed, kept): (Vec<_>, Vec<_>) = candidates.into_iter().partition(|c| {
+            get_related_post_ids(c).iter().any(|&post_id| {
+                query.seen_ids.contains(&post_id)
+                    || bloom_filters
+                        .iter()
+                        .any(|filter| filter.may_contain(post_id))
+            })
+        });
+
+        Ok(FilterResult { kept, removed })
+    }
+}

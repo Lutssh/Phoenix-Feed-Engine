@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  feed-engine:
+    build: 
+      context: ./rust_feed_engine
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - RUST_LOG=info
+    depends_on:
+      - redis
+      - qdrant
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./qdrant_storage:/qdrant/storage:z
+
+  smart-worker:
+    build:
+      context: ./smart_ingestion
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - qdrant
+    command: celery -A smart_ingestion.celery_app worker -Q text_queue,image_queue,video_queue --concurrency=4

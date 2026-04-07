@@ -1,0 +1,43 @@
+[package]
+name = "rust_feed_engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web Framework & Async Runtime
+axum = "0.7"
+tokio = { version = "1.0", features = ["full"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+async-trait = "0.1"
+futures = "0.3"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# State & Caching
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+qdrant-client = "1.9"
+reqwest = { version = "0.12", features = ["json"] }
+
+# Parallel Processing
+rayon = "1.8"
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Utilities
+config = "0.14"
+dashmap = "5.5"
+dotenvy = "0.15"
+lazy_static = "1.4"
+uuid = { version = "1.6", features = ["v4", "serde"] }
+thiserror = "1.0"
+anyhow = "1.0"
+rand = "0.8" # For mock data generation
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+reqwest = { version = "0.11", features = ["json"] }

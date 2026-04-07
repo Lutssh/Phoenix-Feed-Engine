@@ -1,0 +1,26 @@
+# ── Infrastructure ────────────────────────────────────────────────────────────
+celery[redis]==5.3.6
+redis==5.0.1
+qdrant-client==1.9.1
+pydantic>=2.10
+pydantic-settings>=2.4
+python-dotenv==1.0.1
+
+# ── Text ──────────────────────────────────────────────────────────────────────
+sentence-transformers==3.0.1      # MiniLM-L6-v2 (22MB, 384-dim)
+rank_bm25==0.2.2                  # BM25 pre-filter (zero deps, pure Python)
+
+# ── Image ─────────────────────────────────────────────────────────────────────
+# CLIP ViT-B/32 via HuggingFace Transformers
+transformers>=4.40.0              # CLIPModel + CLIPProcessor
+Pillow>=10.3.0                    # PIL image loading
+torch>=2.2.0                      # CPU inference (no CUDA required)
+# YOLOv8 nano — object detection
+ultralytics==8.2.0                # includes yolov8n.pt auto-download
+
+# ── Video ─────────────────────────────────────────────────────────────────────
+faster-whisper>=1.1.0             # int8 CTranslate2 Whisper — 4× faster than openai-whisper
+opencv-python-headless==4.9.0.80  # frame extraction (headless = no GUI deps)
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+numpy>=1.26.0
