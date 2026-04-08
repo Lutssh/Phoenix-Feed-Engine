@@ -18,12 +18,12 @@ check_cmd ffmpeg
 
 # 1. Setup Python Environment
 echo "🐍 Setting up Python Virtual Environment..."
-if [ ! -d "django" ]; then
-    python3 -m venv django
+if [ ! -d "Phoenix-Feed-Engine" ]; then
+    python3 -m venv Phoenix-Feed-Engine
     echo "   Created venv."
 fi
 
-source django/bin/activate
+source Phoenix-Feed-Engine/bin/activate
 echo "   Installing Python dependencies (this may take a while)..."
 pip install -r smart_ingestion/requirements.txt > /dev/null
 
