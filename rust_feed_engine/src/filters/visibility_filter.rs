@@ -1,5 +1,5 @@
-use crate::pipeline::{Filter, FilterResult};
 use crate::models::{PostCandidate, ScoredPostsQuery, VisibilityReason};
+use crate::pipeline::{Filter, FilterResult};
 use async_trait::async_trait;
 
 pub struct VisibilityFilter;
@@ -11,14 +11,13 @@ impl Filter for VisibilityFilter {
         _query: &ScoredPostsQuery,
         candidates: Vec<PostCandidate>,
     ) -> Result<FilterResult<PostCandidate>, String> {
-        let (kept, removed): (Vec<_>, Vec<_>) = candidates
-            .into_iter()
-            .partition(|c| {
-                match &c.visibility_reason {
+        let (kept, removed): (Vec<_>, Vec<_>) =
+            candidates
+                .into_iter()
+                .partition(|c| match &c.visibility_reason {
                     Some(VisibilityReason::Unsafe) => false,
                     _ => true,
-                }
-            });
+                });
 
         Ok(FilterResult { kept, removed })
     }

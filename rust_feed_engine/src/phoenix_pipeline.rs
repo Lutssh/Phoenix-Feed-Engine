@@ -1,25 +1,30 @@
-use crate::pipeline::{CandidatePipeline, Source, Hydrator, Filter, Scorer, Selector, QueryHydrator, SideEffect};
+use crate::extra_components::{CacheRequestInfoSideEffect, UserActionSeqQueryHydrator};
 use crate::filters::{
     age_filter::AgeFilter,
-    self_tweet_filter::SelfTweetFilter,
     previously_seen_posts_filter::PreviouslySeenPostsFilter,
-    social_filters::{RetweetDeduplicationFilter, AuthorSocialgraphFilter, MutedKeywordFilter},
+    self_tweet_filter::SelfTweetFilter,
+    social_filters::{AuthorSocialgraphFilter, MutedKeywordFilter, RetweetDeduplicationFilter},
     visibility_filter::VisibilityFilter,
 };
-use crate::scorers::{weighted_scorer::WeightedScorer, phoenix_scorer::PhoenixScorer, diversity_scorer::AuthorDiversityScorer};
 use crate::hydrators::{
-    InNetworkCandidateHydrator, CoreDataCandidateHydrator, VideoDurationCandidateHydrator,
-    SubscriptionHydrator, GizmoduckCandidateHydrator, NeuralContextHydrator,
+    CoreDataCandidateHydrator, GizmoduckCandidateHydrator, InNetworkCandidateHydrator,
+    NeuralContextHydrator, SubscriptionHydrator, VideoDurationCandidateHydrator,
+};
+use crate::params;
+use crate::pipeline::{
+    CandidatePipeline, Filter, Hydrator, QueryHydrator, Scorer, Selector, SideEffect, Source,
+};
+use crate::scorers::{
+    diversity_scorer::AuthorDiversityScorer, phoenix_scorer::PhoenixScorer,
+    weighted_scorer::WeightedScorer,
 };
 use crate::selectors::TopKScoreSelector;
-use crate::extra_components::{UserActionSeqQueryHydrator, CacheRequestInfoSideEffect};
-use crate::params;
-use std::time::Duration;
 use redis::aio::ConnectionManager;
+use std::time::Duration;
 
-use std::sync::Arc;
-use qdrant_client::Qdrant;
 use crate::sources::{PhoenixSource, ThunderSource};
+use qdrant_client::Qdrant;
+use std::sync::Arc;
 
 pub struct PhoenixCandidatePipeline {
     query_hydrators: Vec<Box<dyn QueryHydrator>>,
@@ -37,16 +42,19 @@ impl PhoenixCandidatePipeline {
             query_hydrators: vec![Box::new(UserActionSeqQueryHydrator)],
             sources: vec![
                 Box::new(PhoenixSource { qdrant }),
-                Box::new(ThunderSource { redis: redis.clone() }),
+                Box::new(ThunderSource {
+                    redis: redis.clone(),
+                }),
             ],
             hydrators: vec![
-
                 Box::new(InNetworkCandidateHydrator),
                 Box::new(CoreDataCandidateHydrator),
                 Box::new(VideoDurationCandidateHydrator),
                 Box::new(SubscriptionHydrator),
                 Box::new(GizmoduckCandidateHydrator),
-                Box::new(NeuralContextHydrator { redis: redis.clone() }),
+                Box::new(NeuralContextHydrator {
+                    redis: redis.clone(),
+                }),
             ],
             filters: vec![
                 Box::new(AgeFilter::new(Duration::from_secs(params::MAX_POST_AGE))),
@@ -58,7 +66,7 @@ impl PhoenixCandidatePipeline {
                 Box::new(VisibilityFilter),
             ],
             scorers: vec![
-                Box::new(PhoenixScorer), 
+                Box::new(PhoenixScorer),
                 Box::new(WeightedScorer),
                 Box::new(AuthorDiversityScorer),
             ],
@@ -76,19 +84,19 @@ impl CandidatePipeline for PhoenixCandidatePipeline {
     fn sources(&self) -> &[Box<dyn Source>] {
         &self.sources
     }
-    
+
     fn hydrators(&self) -> &[Box<dyn Hydrator>] {
         &self.hydrators
     }
-    
+
     fn filters(&self) -> &[Box<dyn Filter>] {
         &self.filters
     }
-    
+
     fn scorers(&self) -> &[Box<dyn Scorer>] {
         &self.scorers
     }
-    
+
     fn selector(&self) -> &dyn Selector {
         &self.selector
     }

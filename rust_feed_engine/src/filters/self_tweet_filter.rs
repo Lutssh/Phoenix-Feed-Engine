@@ -1,5 +1,5 @@
-use crate::pipeline::{Filter, FilterResult};
 use crate::models::{PostCandidate, ScoredPostsQuery};
+use crate::pipeline::{Filter, FilterResult};
 use async_trait::async_trait;
 
 pub struct SelfTweetFilter;

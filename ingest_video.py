@@ -2,7 +2,11 @@
 ingest_video.py  (updated — uses smart_ingestion pipeline)
 """
 import argparse
+import logging
 from smart_ingestion.workers.video_worker import ingest_video
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
@@ -17,4 +21,4 @@ if __name__ == "__main__":
         post_id=args.post_id,
         caption=args.caption,
     )
-    print(f"✅ Pipeline triggered. Task ID: {res.id}")
+    logger.info(f"✅ Pipeline triggered. Task ID: {res.id}")

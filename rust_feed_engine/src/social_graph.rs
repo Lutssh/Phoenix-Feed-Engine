@@ -1,7 +1,7 @@
 // rust_feed_engine/src/social_graph.rs
+use anyhow::Result;
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
-use anyhow::Result;
 use std::time::Duration;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -25,20 +25,28 @@ pub async fn get_social_graph(
     }
 
     // 2. Fallback to Backend Internal API
-    let backend_url = std::env::var("BACKEND_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
+    let backend_url =
+        std::env::var("BACKEND_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
     let url = format!("{}/internal/social-graph/{}/", backend_url, user_id);
-    
-    let response = http_client.get(&url)
+
+    let response = http_client
+        .get(&url)
+        .header(
+            "X-Internal-Key",
+            std::env::var("INTERNAL_API_KEY").unwrap_or_default(),
+        )
         .timeout(Duration::from_millis(200))
         .send()
         .await?;
 
     if response.status().is_success() {
         let graph: SocialGraph = response.json().await?;
-        
+
         // Update Redis cache (60s TTL)
-        let _: () = redis.set_ex(&cache_key, serde_json::to_string(&graph)?, 60).await?;
-        
+        let _: () = redis
+            .set_ex(&cache_key, serde_json::to_string(&graph)?, 60)
+            .await?;
+
         Ok((graph.following, graph.blocked))
     } else {
         // Return empty if Django fails

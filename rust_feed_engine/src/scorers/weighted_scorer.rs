@@ -1,6 +1,6 @@
-use crate::pipeline::Scorer;
-use crate::models::{PostCandidate, ScoredPostsQuery, PhoenixScores};
+use crate::models::{PhoenixScores, PostCandidate, ScoredPostsQuery};
 use crate::params as p;
+use crate::pipeline::Scorer;
 use crate::util::score_normalizer::normalize_score;
 use async_trait::async_trait;
 use rayon::prelude::*;
@@ -19,7 +19,7 @@ impl Scorer for WeightedScorer {
             .map(|mut c| {
                 let weighted_score = Self::compute_weighted_score(&c);
                 let normalized_weighted_score = normalize_score(&c, weighted_score);
-                
+
                 c.weighted_score = Some(normalized_weighted_score);
                 c.score = Some(normalized_weighted_score); // Set primary score as well
                 c
@@ -39,7 +39,7 @@ impl WeightedScorer {
         let s: &PhoenixScores = &candidate.phoenix_scores;
 
         let vqv_weight = Self::vqv_weight_eligibility(candidate);
-        
+
         // Base score from behavioral signals
         let mut combined_score = Self::apply(s.favorite_score, p::FAVORITE_WEIGHT)
             + Self::apply(s.reply_score, p::REPLY_WEIGHT)
@@ -86,7 +86,7 @@ impl WeightedScorer {
         if p::WEIGHTS_SUM == 0.0 {
             combined_score.max(0.0)
         } else if combined_score < 0.0 {
-            (combined_score + p::NEGATIVE_WEIGHTS_SUM.abs()) * 0.1 
+            (combined_score + p::NEGATIVE_WEIGHTS_SUM.abs()) * 0.1
         } else {
             combined_score + p::NEGATIVE_SCORES_OFFSET
         }

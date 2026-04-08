@@ -20,11 +20,17 @@ COLLECTION_DIMS: Dict[str, int] = {
 }
 
 
+_qdrant_client = None
+
+
 def get_qdrant_client():
-    """Return a Qdrant client connected to the configured host/port."""
-    from qdrant_client import QdrantClient
-    from smart_ingestion.config import settings
-    return QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+    """Return a Qdrant client singleton connected to the configured host/port."""
+    global _qdrant_client
+    if _qdrant_client is None:
+        from qdrant_client import QdrantClient
+        from smart_ingestion.config import settings
+        _qdrant_client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+    return _qdrant_client
 
 
 def init_qdrant_collection(collection_name: str, vector_size: int) -> None:
@@ -49,7 +55,7 @@ def init_qdrant_collection(collection_name: str, vector_size: int) -> None:
 
 def upsert_point(
     collection_name: str,
-    point_id: str,
+    point_id: int | str,
     vector: List[float],
     payload: Dict[str, Any],
 ) -> None:

@@ -1,29 +1,51 @@
 mod api;
-mod models;
-mod state;
-mod pipeline;
-mod phoenix_pipeline;
-mod sources;
-mod hydrators;
-mod filters;
-mod scorers;
-mod selectors;
-mod util;
-mod params;
 mod extra_components;
+mod filters;
+mod hydrators;
 mod interaction_handler;
 mod interaction_weights;
-mod user_store;
+mod models;
+mod params;
+mod phoenix_pipeline;
+mod pipeline;
+mod scorers;
+mod selectors;
 mod social_graph;
+mod sources;
+mod state;
+mod user_store;
+mod util;
 
+use crate::state::AppState;
 use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+    middleware,
+    middleware::Next,
+    response::Response,
     routing::{get, post},
     Router,
 };
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use crate::state::AppState;
+
+async fn require_internal_key(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
+    let expected = std::env::var("INTERNAL_API_KEY").unwrap_or_default();
+    let provided = req
+        .headers()
+        .get("X-Internal-Key")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+
+    // If key is set, require it. If not set (dev), allow all.
+    if expected.is_empty() || provided == expected {
+        Ok(next.run(req).await)
+    } else {
+        tracing::warn!("Unauthorized access attempt from {}", req.uri());
+        Err(StatusCode::UNAUTHORIZED)
+    }
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -37,26 +59,41 @@ async fn main() -> anyhow::Result<()> {
 
     // Load configuration
     dotenvy::dotenv().ok();
-    let redis_url = std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-    let qdrant_url = std::env::var("QDRANT_URL").unwrap_or_else(|_| "http://localhost:6334".to_string());
-    
+    let redis_url =
+        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+    let qdrant_url =
+        std::env::var("QDRANT_URL").unwrap_or_else(|_| "http://localhost:6334".to_string());
+
     // Initialize State
-    let app_state = AppState::new(&redis_url, &qdrant_url).await.unwrap_or_else(|_| {
-        panic!("Could not connect to Redis at {} or Qdrant at {}", redis_url, qdrant_url);
-    });
+    let app_state = AppState::new(&redis_url, &qdrant_url)
+        .await
+        .unwrap_or_else(|_| {
+            panic!(
+                "Could not connect to Redis at {} or Qdrant at {}",
+                redis_url, qdrant_url
+            );
+        });
     let shared_state = Arc::new(app_state);
 
     // BACKGROUND TASK: Keep Discovery Cache fresh
     let cache_state = shared_state.clone();
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
         loop {
             interval.tick().await;
             let mut conn = cache_state.redis.clone();
-            if let Ok(json_list) = redis::cmd("LRANGE").arg(crate::params::GLOBAL_DISCOVERY_KEY).arg(0).arg(99).query_async::<_, Vec<String>>(&mut conn).await {
+            if let Ok(json_list) = redis::cmd("LRANGE")
+                .arg(crate::params::GLOBAL_DISCOVERY_KEY)
+                .arg(0)
+                .arg(99)
+                .query_async::<_, Vec<String>>(&mut conn)
+                .await
+            {
                 let mut new_posts = Vec::new();
                 for json_str in json_list {
-                    if let Ok(post) = serde_json::from_str::<crate::models::PostCandidate>(&json_str) {
+                    if let Ok(post) =
+                        serde_json::from_str::<crate::models::PostCandidate>(&json_str)
+                    {
                         new_posts.push(post);
                     }
                 }
@@ -71,13 +108,17 @@ async fn main() -> anyhow::Result<()> {
         .route("/health", get(api::health_check))
         .route("/feed", post(api::get_feed))
         .route("/ingest", post(api::ingest_event))
-        .route("/interaction", post(interaction_handler::handle_interaction))
+        .route(
+            "/interaction",
+            post(interaction_handler::handle_interaction),
+        )
+        .layer(middleware::from_fn(require_internal_key))
         .with_state(shared_state);
 
     // Run Server
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::info!("Feed Engine listening on {}", addr);
-    
+
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
 

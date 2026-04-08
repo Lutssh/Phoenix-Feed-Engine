@@ -16,13 +16,12 @@ Task name is preserved for compatibility with existing .delay() callers.
 from __future__ import annotations
 
 import logging
-import uuid
+import time
 from typing import Dict, List, Optional
 
 from smart_ingestion.celery_app import app
 from smart_ingestion.config import settings
 from smart_ingestion.ml_core.processor import get_processor
-from smart_ingestion.ml_core.bm25_filter import BM25Filter
 from smart_ingestion.utils.qdrant_utils import upsert_point
 from smart_ingestion.utils.redis_utils import cache_neural_context
 
@@ -62,6 +61,7 @@ def process_text(
             "text": text,
             "post_id": post_id,
             "type": "text_only",
+            "created_at_ms": int(time.time() * 1000),
         }
         if metadata:
             payload.update(metadata)
@@ -69,7 +69,7 @@ def process_text(
         # Qdrant
         upsert_point(
             collection_name=settings.TEXT_COLLECTION,
-            point_id=post_id,
+            point_id=int(post_id),
             vector=embedding,
             payload=payload,
         )
@@ -118,11 +118,17 @@ def process_text_batch(
         for item, embedding in zip(items, embeddings):
             post_id = item["post_id"]
             meta = item.get("metadata") or {}
-            payload = {"text": item["text"], "post_id": post_id, "type": "text_only", **meta}
+            payload = {
+                "text": item["text"],
+                "post_id": post_id,
+                "type": "text_only",
+                "created_at_ms": int(time.time() * 1000),
+                **meta
+            }
 
             upsert_point(
                 collection_name=settings.TEXT_COLLECTION,
-                point_id=post_id,
+                point_id=int(post_id),
                 vector=embedding,
                 payload=payload,
             )
@@ -151,6 +157,7 @@ def bm25_prefilter(
         shortlist = bm25_prefilter(user_interests, all_candidate_texts, top_k=50)
         process_text_batch.delay([{"text": t, "post_id": ...} for t in shortlist])
     """
+    from smart_ingestion.ml_core.bm25_filter import BM25Filter
     k = top_k or settings.BM25_TOP_K
     f = BM25Filter(corpus=candidate_texts)
     return f.top_k(query=query_text, k=k)

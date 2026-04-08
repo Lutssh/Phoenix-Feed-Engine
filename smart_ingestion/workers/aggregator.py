@@ -18,7 +18,7 @@ Final storage
 from __future__ import annotations
 
 import logging
-import uuid
+import time
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -28,6 +28,7 @@ from smart_ingestion.config import settings
 from smart_ingestion.ml_core.processor import get_processor
 from smart_ingestion.utils.qdrant_utils import upsert_point
 from smart_ingestion.utils.redis_utils import cache_neural_context
+from smart_ingestion.utils.media_utils import validate_media_path
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ def synthesize_and_index(
                 May also contain {"caption": str} for alignment scoring.
     """
     try:
+        video_path = validate_media_path(video_path)
         clip_vector, transcript, object_tags = results
         meta = metadata or {}
         post_id = meta.get("post_id", video_path)
@@ -99,6 +101,8 @@ def synthesize_and_index(
             "summary_text": summary_text,
             "caption": caption,
             "alignment_score": alignment_score,
+            "created_at_ms": int(time.time() * 1000),
+            "semantic_alignment_score": alignment_score,
             # Legacy key — kept so existing Rust hydrators don't break
             "llava_description": summary_text,
         }
@@ -111,7 +115,7 @@ def synthesize_and_index(
         point_id = post_id
         upsert_point(
             collection_name=settings.VIDEO_COLLECTION,
-            point_id=point_id,
+            point_id=int(point_id),
             vector=final_vector,
             payload=payload,
         )
@@ -119,6 +123,7 @@ def synthesize_and_index(
         # ── Redis cache ───────────────────────────────────────────────────
         cache_neural_context(post_id, {
             "type": "video",
+            "embedding": final_vector,
             "alignment_score": alignment_score,
             "object_tags": object_tags,
             "transcript": transcript,

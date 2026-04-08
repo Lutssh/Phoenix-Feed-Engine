@@ -1,6 +1,6 @@
-use crate::pipeline::Filter;
-use crate::models::{PostCandidate, ScoredPostsQuery};
 use crate::filters::FilterResult;
+use crate::models::{PostCandidate, ScoredPostsQuery};
+use crate::pipeline::Filter;
 use async_trait::async_trait;
 
 pub struct RetweetDeduplicationFilter;
@@ -13,17 +13,15 @@ impl Filter for RetweetDeduplicationFilter {
         candidates: Vec<PostCandidate>,
     ) -> Result<FilterResult<PostCandidate>, String> {
         let mut seen_tweets = std::collections::HashSet::new();
-        let (kept, removed): (Vec<_>, Vec<_>) = candidates
-            .into_iter()
-            .partition(|c| {
-                let id_to_check = c.retweeted_tweet_id.unwrap_or(c.tweet_id);
-                if seen_tweets.contains(&id_to_check) {
-                    false
-                } else {
-                    seen_tweets.insert(id_to_check);
-                    true
-                }
-            });
+        let (kept, removed): (Vec<_>, Vec<_>) = candidates.into_iter().partition(|c| {
+            let id_to_check = c.retweeted_tweet_id.unwrap_or(c.tweet_id);
+            if seen_tweets.contains(&id_to_check) {
+                false
+            } else {
+                seen_tweets.insert(id_to_check);
+                true
+            }
+        });
 
         Ok(FilterResult { kept, removed })
     }
@@ -32,7 +30,11 @@ impl Filter for RetweetDeduplicationFilter {
 pub struct AuthorSocialgraphFilter;
 #[async_trait]
 impl Filter for AuthorSocialgraphFilter {
-    async fn filter(&self, _query: &ScoredPostsQuery, candidates: Vec<PostCandidate>) -> Result<FilterResult<PostCandidate>, String> {
+    async fn filter(
+        &self,
+        _query: &ScoredPostsQuery,
+        candidates: Vec<PostCandidate>,
+    ) -> Result<FilterResult<PostCandidate>, String> {
         // Mock: Filter out if author is blocked/muted (hydrated earlier)
         let (kept, removed): (Vec<_>, Vec<_>) = candidates
             .into_iter()
@@ -44,10 +46,13 @@ impl Filter for AuthorSocialgraphFilter {
 pub struct MutedKeywordFilter;
 #[async_trait]
 impl Filter for MutedKeywordFilter {
-    async fn filter(&self, _query: &ScoredPostsQuery, candidates: Vec<PostCandidate>) -> Result<FilterResult<PostCandidate>, String> {
-        let (kept, removed): (Vec<_>, Vec<_>) = candidates
-            .into_iter()
-            .partition(|c| !c.has_muted_keywords);
+    async fn filter(
+        &self,
+        _query: &ScoredPostsQuery,
+        candidates: Vec<PostCandidate>,
+    ) -> Result<FilterResult<PostCandidate>, String> {
+        let (kept, removed): (Vec<_>, Vec<_>) =
+            candidates.into_iter().partition(|c| !c.has_muted_keywords);
         Ok(FilterResult { kept, removed })
     }
 }

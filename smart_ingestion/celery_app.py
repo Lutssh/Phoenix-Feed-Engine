@@ -68,6 +68,15 @@ def warmup_models(sender, **kwargs):
     log.info("Warming up ML models...")
     from smart_ingestion.ml_core.processor import get_processor
     proc = get_processor()
-    proc.embed_text("warmup")                    # loads MiniLM
-    proc.text_to_clip_vector("warmup")           # loads CLIP text encoder
-    log.info("Models warm — worker ready.")
+    proc.embed_text("warmup")           # loads MiniLM
+    proc.text_to_clip_vector("warmup")  # loads CLIP text encoder
+    
+    # Warm image path — requires a dummy image
+    import numpy as np
+    from PIL import Image
+    dummy = Image.fromarray(np.zeros((32, 32, 3), dtype=np.uint8))
+    proc._clip_image_embed(dummy)       # CLIP vision
+    proc._get_yolo()                    # YOLOv8n
+    proc._get_whisper()                 # faster-whisper
+    
+    log.info("All models warm — worker ready.")

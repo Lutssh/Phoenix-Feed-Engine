@@ -15,11 +15,11 @@ pub struct ScoredPostsQuery {
     pub candidate_count: Option<usize>,
 
     // NEW — populated by Rust from Redis/Qdrant before pipeline runs:
-    pub user_text_vector:   Option<Vec<f64>>,    // 384-dim
-    pub user_visual_vector: Option<Vec<f64>>,    // 512-dim
-    pub is_cold_start:      bool,
-    pub following_ids:      Vec<i64>,
-    pub blocked_ids:        Vec<i64>,
+    pub user_text_vector: Option<Vec<f64>>,   // 384-dim
+    pub user_visual_vector: Option<Vec<f64>>, // 512-dim
+    pub is_cold_start: bool,
+    pub following_ids: Vec<i64>,
+    pub blocked_ids: Vec<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -41,31 +41,31 @@ pub struct PostCandidate {
     pub author_id: i64,
     pub created_at_ms: u64,
     pub in_network: Option<bool>,
-    
+
     // Scores
     pub score: Option<f64>,
     pub weighted_score: Option<f64>,
     pub phoenix_scores: PhoenixScores,
-    
+
     // Lineage / Relations
     pub retweeted_tweet_id: Option<i64>,
     pub retweeted_user_id: Option<i64>,
     pub in_reply_to_tweet_id: Option<i64>,
     pub ancestors: Vec<i64>,
-    
+
     // Serving Info
     pub served_type: Option<ServedType>,
     pub visibility_reason: Option<VisibilityReason>,
     pub last_scored_at_ms: Option<u64>,
     pub prediction_request_id: Option<u64>,
-    
+
     // Hydration
     pub is_hydrated: bool,
     pub author_is_blocked: bool,
     pub author_is_muted: bool,
     pub has_muted_keywords: bool,
     pub video_duration_ms: Option<i64>,
-    
+
     // Neural Context
     pub semantic_alignment_score: Option<f64>,
     pub video_context: Option<String>,

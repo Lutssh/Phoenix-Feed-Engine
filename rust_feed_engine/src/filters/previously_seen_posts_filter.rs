@@ -1,5 +1,5 @@
-use crate::pipeline::{Filter, FilterResult};
 use crate::models::{PostCandidate, ScoredPostsQuery};
+use crate::pipeline::{Filter, FilterResult};
 use crate::util::{bloom_filter::BloomFilter, candidates_util::get_related_post_ids};
 use async_trait::async_trait;
 

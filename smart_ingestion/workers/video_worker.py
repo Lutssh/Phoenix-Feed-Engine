@@ -24,6 +24,7 @@ from celery import chord
 
 from smart_ingestion.celery_app import app
 from smart_ingestion.ml_core.processor import get_processor
+from smart_ingestion.utils.media_utils import validate_media_path
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ def clip_frames_task(self, video_path: str) -> List[float]:
     ~800ms for 8 frames on CPU.
     """
     try:
+        video_path = validate_media_path(video_path)
         return get_processor().embed_video_frames(video_path)
     except Exception as exc:
         logger.exception("clip_frames_task failed: %s", video_path)
@@ -60,6 +62,7 @@ def transcribe_task(self, video_path: str) -> str:
     ~4× faster than OpenAI Whisper. ~150-400ms for short clips on CPU.
     """
     try:
+        video_path = validate_media_path(video_path)
         return get_processor().transcribe_audio(video_path)
     except Exception as exc:
         logger.exception("transcribe_task failed: %s", video_path)
@@ -78,6 +81,7 @@ def detect_objects_task(self, video_path: str) -> List[str]:
     ~30-80ms per sampled frame on CPU.
     """
     try:
+        video_path = validate_media_path(video_path)
         return get_processor().detect_objects_video(video_path)
     except Exception as exc:
         logger.exception("detect_objects_task failed: %s", video_path)

@@ -9,11 +9,19 @@ while the Rust engine handles ranking and the Python workers handle ML.
 """
 import httpx
 import logging
+import os
 from typing import Optional, Dict
 
 # Configuration
-RUST_ENGINE_URL = "http://localhost:3000"
+RUST_ENGINE_URL = os.getenv("RUST_ENGINE_URL", "http://localhost:3000")
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "")
 logger = logging.getLogger(__name__)
+
+def _headers():
+    return {
+        "X-Internal-Key": INTERNAL_API_KEY,
+        "Content-Type": "application/json"
+    }
 
 def record_interaction(
     user_id: int, 
@@ -41,7 +49,11 @@ def record_interaction(
     try:
         # Fire-and-forget: we use a short timeout to not block the main app
         with httpx.Client(timeout=0.5) as client:
-            response = client.post(f"{RUST_ENGINE_URL}/interaction", json=payload)
+            response = client.post(
+                f"{RUST_ENGINE_URL}/interaction", 
+                json=payload,
+                headers=_headers()
+            )
             return response.status_code == 200
     except Exception as e:
         logger.warning(f"Failed to record interaction: {e}")
@@ -64,7 +76,11 @@ def trigger_ingestion(
     
     try:
         with httpx.Client(timeout=2.0) as client:
-            response = client.post(f"{RUST_ENGINE_URL}/ingest", json=data)
+            response = client.post(
+                f"{RUST_ENGINE_URL}/ingest", 
+                json=data,
+                headers=_headers()
+            )
             return response.status_code == 202
     except Exception as e:
         logger.error(f"Failed to trigger ingestion: {e}")

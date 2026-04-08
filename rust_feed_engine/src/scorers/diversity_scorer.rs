@@ -1,5 +1,5 @@
-use crate::pipeline::Scorer;
 use crate::models::{PostCandidate, ScoredPostsQuery};
+use crate::pipeline::Scorer;
 use async_trait::async_trait;
 use std::collections::HashMap;
 
@@ -13,12 +13,12 @@ impl Scorer for AuthorDiversityScorer {
         mut candidates: Vec<PostCandidate>,
     ) -> Result<Vec<PostCandidate>, String> {
         let mut author_counts = HashMap::new();
-        
+
         // Penality for having too many posts from the same author
         for c in &mut candidates {
             let count = author_counts.entry(c.author_id).or_insert(0);
             *count += 1;
-            
+
             if *count > 1 {
                 // Apply a simple diversity penalty
                 if let Some(score) = c.score {
@@ -26,7 +26,7 @@ impl Scorer for AuthorDiversityScorer {
                 }
             }
         }
-        
+
         Ok(candidates)
     }
 }

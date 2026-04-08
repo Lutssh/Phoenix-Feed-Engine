@@ -1,8 +1,12 @@
 import argparse
+import logging
 from smart_ingestion.workers.text_worker import process_text
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 def ingest_text(text: str, post_id: str, extra_metadata: dict = None):
-    print(f"🚀 Starting text ingestion for post: {post_id}")
+    logger.info(f"🚀 Starting text ingestion for post: {post_id}")
     # We call it as a delay (async task)
     result = process_text.delay(text, post_id, extra_metadata)
     return result
@@ -15,4 +19,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     res = ingest_text(args.text, args.post_id)
-    print(f"✅ Task triggered. Task ID: {res.id}")
+    logger.info(f"✅ Task triggered. Task ID: {res.id}")

@@ -319,7 +319,7 @@ class MLProcessor:
                 break
             if fi in sample_idx:
                 pil = Image.fromarray(
-                    __import__("cv2").cvtColor(frame, __import__("cv2").COLOR_BGR2RGB)
+                    cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 )
                 frame_vecs.append(self._clip_image_embed(pil))
             fi += 1
