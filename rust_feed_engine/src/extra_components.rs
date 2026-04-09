@@ -1,4 +1,4 @@
-use crate::models::{PostCandidate, ScoredPostsQuery, UserActionSequence};
+use crate::models::{PostCandidate, ScoredPostsQuery};
 use crate::pipeline::{QueryHydrator, SideEffect};
 use async_trait::async_trait;
 

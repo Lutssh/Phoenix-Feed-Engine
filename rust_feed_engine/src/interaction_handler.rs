@@ -4,7 +4,7 @@ use crate::state::AppState;
 use crate::user_store;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use redis::AsyncCommands;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use std::sync::Arc;

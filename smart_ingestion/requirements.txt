@@ -24,3 +24,4 @@ opencv-python-headless==4.9.0.80  # frame extraction (headless = no GUI deps)
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
 numpy>=1.26.0
+flower==2.0.1

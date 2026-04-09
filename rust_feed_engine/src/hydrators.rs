@@ -109,7 +109,6 @@ impl Hydrator for NeuralContextHydrator {
         _query: &ScoredPostsQuery,
         mut candidates: Vec<PostCandidate>,
     ) -> Result<Vec<PostCandidate>, String> {
-        use redis::AsyncCommands;
         let mut conn = self.redis.clone();
 
         let keys: Vec<String> = candidates
