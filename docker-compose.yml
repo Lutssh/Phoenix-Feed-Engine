@@ -72,8 +72,8 @@ services:
     environment:
       RUST_LOG: info
       REDIS_URL: redis://redis:6379
-      QDRANT_HOST: qdrant                # FIX: was missing — Rust uses qdrant-client
-      QDRANT_PORT: 6333                  # FIX: was missing
+      QDRANT_HOST: qdrant                
+      QDRANT_PORT: 6333                 
       # URL of your Django / Node / Go backend so Rust can fetch social graphs.
       # Override with your real backend address in .env or CI.
       BACKEND_URL: ${BACKEND_URL:-http://host.docker.internal:8000}
