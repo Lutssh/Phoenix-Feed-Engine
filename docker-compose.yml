@@ -1,43 +1,134 @@
 version: '3.8'
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Phoenix Feed Engine — one-command startup
+#   docker compose up --build
+#
+# Services:
+#   redis            — broker + result backend
+#   qdrant           — vector store
+#   feed-engine      — Rust ranking / retrieval API  (port 3000)
+#   worker-text      — Celery text_queue  (concurrency 8, ~14ms/task)
+#   worker-image     — Celery image_queue (concurrency 4, ~200-400ms/task)
+#   worker-video     — Celery video_queue (concurrency 2, ~2-5s/task)
+#   flower           — Celery dashboard   (port 5555, local only)
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-worker-base: &worker-base
+  build:
+    context: .                          # project root so smart_ingestion/ is a package
+    dockerfile: smart_ingestion/Dockerfile
+  environment: &worker-env
+    REDIS_URL: redis://redis:6379/0
+    QDRANT_HOST: qdrant
+    QDRANT_PORT: 6333
+    PYTHONPATH: /app
+  depends_on:
+    redis:
+      condition: service_healthy
+    qdrant:
+      condition: service_healthy
+  restart: unless-stopped
+
 services:
-  feed-engine:
-    build: 
-      context: ./rust_feed_engine
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      - REDIS_URL=redis://redis:6379
-      - RUST_LOG=info
-    depends_on:
-      - redis
-      - qdrant
+
+  # ── Infrastructure ───────────────────────────────────────────────────────────
 
   redis:
     image: redis:7-alpine
     ports:
       - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
 
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.9.7           # pinned — avoids surprise breaking changes
     ports:
-      - "127.0.0.1:6333:6333"
-      - "127.0.0.1:6334:6334"
+      - "127.0.0.1:6333:6333"            # HTTP / REST
+      - "127.0.0.1:6334:6334"            # gRPC
     volumes:
-      - ./qdrant_storage:/qdrant/storage:z
+      - qdrant_storage:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:6333/readyz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
 
-  smart-worker:
+  # ── Rust Feed Engine ─────────────────────────────────────────────────────────
+
+  feed-engine:
     build:
-      context: ./smart_ingestion
+      context: ./rust_feed_engine
       dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
     environment:
-      - REDIS_URL=redis://redis:6379/0
-      - QDRANT_HOST=qdrant
-      - QDRANT_PORT=6333
-    volumes:
-      - .:/app
+      RUST_LOG: info
+      REDIS_URL: redis://redis:6379
+      QDRANT_HOST: qdrant                # FIX: was missing — Rust uses qdrant-client
+      QDRANT_PORT: 6333                  # FIX: was missing
+      # URL of your Django / Node / Go backend so Rust can fetch social graphs.
+      # Override with your real backend address in .env or CI.
+      BACKEND_URL: ${BACKEND_URL:-http://host.docker.internal:8000}
     depends_on:
-      - redis
-      - qdrant
-    command: celery -A smart_ingestion.celery_app worker -Q text_queue,image_queue,video_queue --concurrency=4
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Celery Workers (per-queue, concurrency tuned to task cost) ───────────────
+  # Splitting queues gives each worker class the right thread count and lets
+  # you scale them independently (e.g. docker compose scale worker-video=4).
+
+  worker-text:
+    <<: *worker-base
+    command: >
+      celery -A smart_ingestion.celery_app worker
+      -Q text_queue
+      --concurrency=8
+      -n text@%h
+      --loglevel=info
+
+  worker-image:
+    <<: *worker-base
+    command: >
+      celery -A smart_ingestion.celery_app worker
+      -Q image_queue
+      --concurrency=4
+      -n image@%h
+      --loglevel=info
+
+  worker-video:
+    <<: *worker-base
+    command: >
+      celery -A smart_ingestion.celery_app worker
+      -Q video_queue
+      --concurrency=2
+      -n video@%h
+      --loglevel=info
+
+  # ── Flower (Celery monitoring dashboard) ─────────────────────────────────────
+
+  flower:
+    <<: *worker-base
+    ports:
+      - "127.0.0.1:5555:5555"            # local only — do not expose in prod
+    command: >
+      celery -A smart_ingestion.celery_app flower
+      --port=5555
+      --broker=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  redis_data:
+  qdrant_storage:
