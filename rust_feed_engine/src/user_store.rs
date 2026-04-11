@@ -37,11 +37,13 @@ pub async fn get_user_vectors(
     if let Some(point) = response.result.first() {
         if let Some(vectors) = &point.vectors {
             if let Some(VectorsOptions::Vectors(named_vectors)) = &vectors.vectors_options {
+                #[allow(deprecated)]
                 let text_vec: Option<Vec<f64>> = named_vectors
                     .vectors
                     .get("text_vector")
                     .map(|v| v.data.iter().map(|&x| x as f64).collect());
 
+                #[allow(deprecated)]
                 let visual_vec: Option<Vec<f64>> = named_vectors
                     .vectors
                     .get("visual_vector")

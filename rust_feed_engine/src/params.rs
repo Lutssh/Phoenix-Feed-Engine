@@ -52,7 +52,6 @@ pub const NEGATIVE_SCORES_OFFSET: f64 = 0.0; // Keep it simple
 
 pub const MAX_POST_AGE: u64 = 24 * 60 * 60; // 24 hours
 pub const RESULT_SIZE: usize = 20;
-pub const PHOENIX_MAX_RESULTS: i32 = 100;
 pub const USER_ONLINE_TIMEOUT_SECS: u64 = 300; // 5 minutes
 pub const GLOBAL_DISCOVERY_KEY: &str = "feed:global_discovery";
 pub const HEARTBEAT_INTERVAL_SECS: u64 = 60;

@@ -85,6 +85,7 @@ impl Hydrator for GizmoduckCandidateHydrator {
     }
 }
 
+#[allow(dead_code)]
 pub struct VFCandidateHydrator;
 #[async_trait]
 impl Hydrator for VFCandidateHydrator {

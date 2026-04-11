@@ -1,6 +1,7 @@
 use crate::models::{PostCandidate, ScoredPostsQuery};
 use async_trait::async_trait;
 
+#[allow(dead_code)]
 pub struct FilterResult<T> {
     pub kept: Vec<T>,
     pub removed: Vec<T>,

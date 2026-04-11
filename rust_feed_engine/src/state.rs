@@ -22,7 +22,7 @@ pub struct AppState {
 impl AppState {
     pub async fn new(redis_url: &str, qdrant_url: &str) -> Result<Self> {
         let client = Client::open(redis_url)?;
-        let connection_manager = client.get_tokio_connection_manager().await?;
+        let connection_manager = client.get_connection_manager().await?;
 
         let qdrant = Arc::new(Qdrant::from_url(qdrant_url).build()?);
         let http_client = HttpClient::new();

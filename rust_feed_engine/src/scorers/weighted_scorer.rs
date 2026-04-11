@@ -3,7 +3,6 @@ use crate::params as p;
 use crate::pipeline::Scorer;
 use crate::util::score_normalizer::normalize_score;
 use async_trait::async_trait;
-use rayon::prelude::*;
 
 pub struct WeightedScorer;
 

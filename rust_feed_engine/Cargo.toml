@@ -40,4 +40,4 @@ rand = "0.8" # For mock data generation
 chrono = { version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.12", features = ["json"] }
